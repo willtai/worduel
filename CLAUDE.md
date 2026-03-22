@@ -1,127 +1,101 @@
-# CLAUDE.md — CodeWordle
+# CLAUDE.md — Worduel
 
-> **Read this file and the docs/ directory before writing code.**
+> **Read this file before writing code.**
 
 ## Vision
 
-CodeWordle is a terminal-based Wordle game for programmers. Players guess a 6-character programming keyword in 6 tries, with character hints (correct/present/absent) and semantic proximity hints ("Same family — Array methods"). It plays during Claude Code wait times — the Chrome Dino game for AI coding.
+Worduel is Wordle inside Claude Code. It runs as an MCP server — Claude acts as the game host, presenting the board and collecting guesses, while the server handles game logic and word validation. Players guess a standard 5-letter English word in 6 tries with correct/present/absent hints. It plays during Claude Code wait times — the Chrome Dino game for AI coding.
 
 ## The Pitch
 
-> "While Claude writes your code, you guess programming keywords. Then you post your score and your coworker installs Claude Code to beat it."
+> "While Claude writes your code, you play Wordle. Then you post your score and your coworker installs Claude Code to beat it."
 
 ## Tech Stack
 
 | Technology | Purpose |
 |---|---|
 | TypeScript | Core game logic |
-| Node.js | Runtime (terminal I/O, raw mode) |
-| ANSI escape sequences | Rendering (256-color, alternate screen buffer) |
-| JSON files | Persistence (`~/.codewordle/`) |
+| MCP SDK (`@modelcontextprotocol/sdk`) | Server that Claude Code communicates with |
+| Zod | Input validation for MCP tool parameters |
+| Mulberry32 PRNG | Deterministic daily word selection |
+| JSON files | Persistence (`~/.worduel/`) |
 
-**No frameworks. No dependencies beyond Node.js built-ins.** This must be tiny, fast, and zero-install via `npx`.
+**Published on npm as `worduel`.** Install via `npx worduel` or add to Claude Code MCP config.
 
-## Design Docs
+## Security Model
 
-Read these before implementing. They are the source of truth:
+The primary security boundary is **architectural**: the MCP server NEVER sends the answer to Claude during active gameplay. The `answer` field in `GameState` is only populated when `status` is `"won"` or `"lost"`. This means Claude cannot accidentally (or deliberately) reveal the answer mid-game.
 
-| Doc | Contents |
+Additional defense-in-depth layers in `security.ts`:
+- Rate limiting on guesses and game creation
+- Input validation (length, characters, injection attempts)
+
+## Word Bank
+
+- **627 answer words** — curated 5-letter English words (`data/answers.json`)
+- **2,664 valid guesses** — additional accepted words (`data/valid-guesses.json`)
+- **3,291 total** recognized words
+- Standard English words only. No programming keywords, no jargon.
+
+## Game Modes
+
+| Mode | Description |
 |---|---|
-| `docs/DESIGN.md` | Full UX spec — every screen mockup, colors, animations, layout, accessibility |
-| `docs/GAME_MECHANICS.md` | State machine, hint algorithm, TypeScript interfaces, interruption handling, persistence |
-| `docs/SOCIAL_AND_CONTENT.md` | Word bank (157 answers + 305 valid guesses), semantic categories, share cards, achievements |
-| `docs/VIRAL_MECHANICS.md` | Viral loop, competitive systems, growth hacks, retention mechanics |
+| `"daily"` | Same word for everyone each day. Deterministic via Mulberry32 PRNG seeded from day number + fixed seed. Epoch: `2026-03-22`. |
+| `"random"` | Practice mode. Random word each game. Unlimited plays. |
 
-## Key Design Decisions
+`GameMode` type: `"daily" | "random"`
 
-1. **6-character words only.** Long enough to be tricky, short enough for terminal display.
-2. **Daily challenge + Practice mode.** Daily = same word for everyone (Wordle effect). Practice = unlimited.
-3. **3 attempts per daily challenge.** Scarcity increases perceived value.
-4. **Semantic hints** distinguish this from Wordle clones. "Same family — Array methods" tells you the domain.
-5. **Language hint after guess 3.** "Most associated with: JavaScript."
-6. **Default action after game = COPY SCORE CARD.** Optimize for sharing above all else.
-7. **Zero signup.** Identity from git username. Org detection from `git remote`.
-8. **Graceful Claude interruption.** Game pauses cleanly. Grace period on guess 5/6.
+## MCP Tools
 
-## Core Game States
+| Tool | Purpose |
+|---|---|
+| `worduel_start` | Start a new game (daily or random mode) |
+| `worduel_guess` | Submit a 5-letter guess |
+| `worduel_stats` | View player statistics |
+| `worduel_give_up` | Forfeit the current game |
 
-```
-IDLE → GAME_START → TYPING → GUESS_SUBMITTED → HINT_REVEAL
-  → WIN_STATE or LOSE_STATE (if done)
-  → TYPING (if guesses remain)
-  → PAUSE_STATE (if Claude interrupts)
-```
-
-## Rendering Rules
-
-- **44 cols x 24 rows** minimum terminal size
-- **ANSI 256-color** baseline, true color upgrade if available
-- **Differential rendering** — only update changed characters
-- **Alternate screen buffer** — preserve Claude's output
-- **No emoji in gameplay** — emoji ONLY in clipboard share cards
-- **Sub-16ms input latency**
-- **Hide cursor** during gameplay
-
-## Color Palette (ANSI 256)
-
-| Element | ANSI Code | Hex Approx |
-|---|---|---|
-| Correct (green) | `38;5;114` | `#87d787` |
-| Present (yellow) | `38;5;221` | `#ffd75f` |
-| Absent (grey) | `38;5;241` | `#626262` |
-| Border | `38;5;245` | `#8a8a8a` |
-| Title accent | `38;5;75` | `#5fafff` |
-| Error | `38;5;203` | `#ff5f5f` |
-| Streak fire | `38;5;208` | `#ff8700` |
-
-## Share Card Format
-
-```
-CodeWordle #47 — 3/6
-······
-✓●··●·
-✓✓✓✓✓✓
-🔥 12 | npx codewordle
-```
-
-## Project Structure (Target)
+## Project Structure
 
 ```
 codewordle/
 ├── CLAUDE.md                    # This file
-├── package.json                 # Zero/minimal deps
+├── package.json                 # Published as "worduel" on npm
 ├── tsconfig.json
 ├── src/
-│   ├── index.ts                 # Entry point, CLI args
-│   ├── game.ts                  # Core game loop, state machine
-│   ├── render.ts                # Terminal rendering engine
-│   ├── hints.ts                 # Character + semantic hint algorithms
-│   ├── words.ts                 # Word bank + validation
-│   ├── daily.ts                 # Daily challenge selection + tracking
-│   ├── stats.ts                 # Player stats + persistence
-│   ├── share.ts                 # Share card generation + clipboard
-│   ├── input.ts                 # Raw terminal input handling
-│   ├── config.ts                # Configuration + CLI flags
-│   └── types.ts                 # All TypeScript interfaces
+│   ├── index.ts                 # MCP server entry point, tool definitions
+│   ├── game.ts                  # Core game logic (create, guess, give up)
+│   ├── hints.ts                 # Character hint algorithm (correct/present/absent)
+│   ├── words.ts                 # Word bank loading + validation
+│   ├── stats.ts                 # Player stats + persistence (~/.worduel/)
+│   ├── share.ts                 # Share card generation (emoji grid)
+│   ├── prompts.ts               # Claude instruction prompts for each game state
+│   ├── security.ts              # Rate limiting + input validation
+│   └── types.ts                 # All TypeScript interfaces + constants
 ├── data/
-│   ├── answers.json             # 157 curated answer words with metadata
-│   └── valid-guesses.json       # 305 additional accepted words
-├── tests/
-│   ├── hints.test.ts            # Hint algorithm tests
-│   ├── words.test.ts            # Word validation tests
-│   └── daily.test.ts            # Daily challenge determinism tests
+│   ├── answers.json             # 627 curated answer words
+│   └── valid-guesses.json       # 2,664 additional accepted words
+├── dist/                        # Compiled output (tsc)
 └── docs/
-    ├── DESIGN.md                # UX spec
-    ├── GAME_MECHANICS.md        # Technical spec
-    ├── SOCIAL_AND_CONTENT.md    # Content spec
-    └── VIRAL_MECHANICS.md       # Viral spec
+    ├── GO_TO_MARKET.md          # Launch strategy
+    ├── LAUNCH_CONTENT.md        # Ready-to-post content
+    └── (historical brainstorm docs)
+```
+
+## Commands
+
+```bash
+npm run build          # Compile TypeScript
+npm run dev            # Watch mode
+npm test               # Run tests (vitest)
+npm start              # Run MCP server directly
 ```
 
 ## Key Invariants (NEVER VIOLATE)
 
-1. **Daily challenge must be deterministic.** Same day = same word for everyone, always.
+1. **Daily challenge must be deterministic.** Same day = same word for everyone, always. Mulberry32 PRNG with fixed seed + epoch.
 2. **Hint algorithm must handle duplicate letters correctly.** Exact matches take priority over present matches.
-3. **No network required for core gameplay.** Offline-first. Leaderboards are optional.
-4. **Game must not impact Claude Code performance.** Under 100KB memory, no child processes.
+3. **Answer is NEVER sent to Claude during active gameplay.** Only revealed on win or loss.
+4. **No network required for core gameplay.** Fully offline. All words bundled in `data/`.
 5. **Share cards must be plain text.** Copy-pasteable into any chat app.
-6. **All 157 answer words must be recognizable to most developers.** No obscure terms.
+6. **Zero config install.** Must work via `npx worduel` or MCP config with no setup.
