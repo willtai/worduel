@@ -1,6 +1,6 @@
 # Worduel
 
-**Wordle inside Claude Code. Same daily word for everyone. Impossible to cheat.**
+**Play Wordle inside Claude Code.**
 
 [![npm version](https://img.shields.io/npm/v/worduel)](https://www.npmjs.com/package/worduel)
 [![license](https://img.shields.io/npm/l/worduel)](https://opensource.org/licenses/MIT)
@@ -48,7 +48,7 @@ Claude: "Getting somewhere. Maybe."
 - **Practice mode** -- unlimited random words
 - **Witty AI game host** with dry humor and deadpan commentary
 - **Shareable score cards** with Wordle emoji grids
-- **Architecturally impossible to cheat** -- Claude never sees the answer
+- **Claude never sees the answer during gameplay** -- Claude never sees the answer
 - **3,291 valid words** from a curated English word list
 - **Local stats tracking** -- streaks, win rate, guess distribution
 

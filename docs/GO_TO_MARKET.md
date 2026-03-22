@@ -2,7 +2,7 @@
 
 ## The Pitch
 
-**One-liner:** "Wordle inside Claude Code — same daily word for everyone, and it's impossible to cheat."
+**One-liner:** "Play Wordle inside Claude Code."
 
 **Install:** `claude mcp add worduel -- npx -y worduel`
 
@@ -27,7 +27,7 @@
 |---|---------|----------|-------|
 | 1 | **Hacker News** | Engineers | Show HN + architecture story |
 | 2 | **Twitter/X** | Dev community | Demo GIF + jailbreak challenge |
-| 3 | **r/programming** | 2.1M devs | "Impossible to cheat" security angle |
+| 3 | **r/programming** | 2.1M devs | Architecture angle — Claude never sees the answer |
 | 4 | **r/ClaudeAI** | Claude users | Direct audience, install command |
 | 5 | **r/commandline** | CLI lovers | Terminal-native aesthetic |
 | 6 | **Dev.to** | Blog readers | "How I Built This" story |

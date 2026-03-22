@@ -24,7 +24,7 @@ import type { StatsResponse } from "./types.js";
 const server = new McpServer({
   name: "worduel",
   version: "0.1.0",
-  description: "Wordle — the classic word game, playable inside Claude Code",
+  description: "Play Wordle inside Claude Code",
 });
 
 // ----- Tool: worduel_start -----
